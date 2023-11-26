@@ -1,6 +1,11 @@
-import os
+from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from torch.utils.data import Dataset
+
+import torch
+import os
+
+num_workers = os.cpu_count()
+num_workers = max(1, num_workers) if num_workers is not None else 1
 
 thousand_k_to_200 = {
     0: -1,
@@ -1023,9 +1028,7 @@ class ImagenetA(
         self._load_data()
 
     def _load_data(self):
-        for idx, (dirpath, dirnames, filenames) in enumerate(
-            os.walk(self._dataset_dir)
-        ):
+        for _, (dirpath, dirnames, filenames) in enumerate(os.walk(self._dataset_dir)):
             # Skip the root directory
             if dirpath == self._dataset_dir:
                 continue
@@ -1057,3 +1060,34 @@ class ImagenetA(
             image = self._transform(image)
 
         return image, label_1000
+
+    @staticmethod
+    def eval_model(
+        model,
+        root=".",
+        device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
+        transforms=None,
+        batch_size=128,
+    ):
+        model.eval()
+        model.to(device)
+
+        dataset = ImagenetA(root, transform=transforms)
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers  # type: ignore
+        )
+
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for images, labels in dataloader:
+                images = images.to(device)
+                labels = labels.to(device)
+
+                outputs = model(images)
+                _, predicted = torch.max(outputs.data, 1)
+
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        return correct / total
