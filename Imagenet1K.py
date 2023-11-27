@@ -1,4 +1,5 @@
 from torch.utils.data import DataLoader, Dataset
+from .utils import Accuracy
 from PIL import Image
 
 import torch
@@ -62,6 +63,7 @@ class I1KVal(
         device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
         transforms=None,
         batch_size=128,
+        top5=False,
     ):
         model.eval()
         correct = 0
@@ -73,14 +75,16 @@ class I1KVal(
         )
 
         with torch.no_grad():
-            for data in dataloader:
-                images, labels = data
-                images = images.to(device)
-                labels = labels.to(device)
+            for images, labels in dataloader:
+                images, labels = images.to(device), labels.to(device)
                 outputs = model(images)
 
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum()
+                if top5:
+                    correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                else:
+                    correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                total += total_batch
+                correct += correct_batch
 
         return correct / total

@@ -1,4 +1,5 @@
 from .utils import thousandK_to_ImagenetA200 as thousand_k_to_200
+from .utils import Accuracy
 
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
@@ -68,6 +69,7 @@ class ImagenetA(
         device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
         transforms=None,
         batch_size=128,
+        top5=False,
     ):
         model.eval()
         model.to(device)
@@ -85,9 +87,13 @@ class ImagenetA(
                 labels = labels.to(device)
 
                 outputs = model(images)
-                _, predicted = torch.max(outputs.data, 1)
 
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                if top5:
+                    correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                else:
+                    correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                total += total_batch
+                correct += correct_batch
 
         return correct / total
