@@ -12,7 +12,7 @@ num_workers = max(1, num_workers) if num_workers is not None else 1
 
 wnid_to_index = {wnid: index for index, wnid in enumerate(all_wnids)}
 imagenet_r_to_full_map = {
-    wnid_to_index[wnid]: i for i, wnid in enumerate(imagenet_r_wnids)
+    i: wnid_to_index[wnid] for i, wnid in enumerate(imagenet_r_wnids)
 }
 
 
