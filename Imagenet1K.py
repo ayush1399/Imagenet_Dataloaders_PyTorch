@@ -27,10 +27,13 @@ class I1KEvalBase(Dataset):
         img_name = os.path.join(self.image_dir, self.image_files[idx])
         image = Image.open(img_name)
 
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
         if self.transform:
             image = self.transform(image)
 
-        return image
+        return image, 0
 
 
 class I1KTest(
@@ -52,7 +55,7 @@ class I1KVal(
         self.labels = [int(label.strip()) for label in self.labels]
 
     def __getitem__(self, idx):
-        image = super().__getitem__(idx)
+        image, _ = super().__getitem__(idx)
         return image, self.labels[idx]
 
     @staticmethod
