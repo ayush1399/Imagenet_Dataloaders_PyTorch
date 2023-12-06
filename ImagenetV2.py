@@ -3,6 +3,8 @@ from torch.utils.data import DataLoader
 from os.path import join
 from os import cpu_count
 
+from .utils import Accuracy
+
 import torch
 
 num_workers = cpu_count()
@@ -55,6 +57,7 @@ class IV2:
         device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
         transforms=None,
         batch_size=128,
+        top5=False,
     ):
         model.eval()
         correct = 0
@@ -80,8 +83,13 @@ class IV2:
 
                     outputs = model(images)
 
-                    subset_correct[s] += (outputs.argmax(dim=1) == labels).sum().item()
-                    subset_total[s] += labels.size(0)
+                    if top5:
+                        correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                    else:
+                        correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                    subset_correct[s] += correct_batch
+                    subset_total[s] += total_batch
 
                 subset_acc[s] = subset_correct[s] / subset_total[s]
 
@@ -105,7 +113,12 @@ class IV2:
 
                 outputs = model(images)
 
-                correct += (outputs.argmax(dim=1) == labels).sum().item()
-                total += labels.size(0)
+                if top5:
+                    correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                else:
+                    correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                correct += correct_batch
+                total += total_batch
 
             return correct / total

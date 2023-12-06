@@ -1,3 +1,23 @@
+class Accuracy:
+    @staticmethod
+    def _top1(outputs, labels):
+        _, predicted = torch.max(outputs.data, 1)
+        total = labels.size(0)
+        correct = (predicted == labels).sum()
+        return correct, total
+
+    @staticmethod
+    def _top5(outputs, labels):
+        _, top5_indices = outputs.topk(5, dim=1)
+
+        correct = (
+            top5_indices.eq(labels.view(-1, 1).expand_as(top5_indices)).sum().item()
+        )
+        total = labels.size(0)
+
+        return correct, total
+
+
 thousandK_to_ImagenetA200 = {
     0: -1,
     1: -1,

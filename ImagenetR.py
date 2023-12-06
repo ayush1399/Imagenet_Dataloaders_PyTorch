@@ -1,5 +1,6 @@
 from .utils import imagenetR_wnids as imagenet_r_wnids
 from .utils import thousandK_wnids as all_wnids
+from .utils import Accuracy
 
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
@@ -34,6 +35,7 @@ class ImagenetR(ImageFolder):
         device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
         transforms=None,
         batch_size=128,
+        top5=False,
     ):
         model.eval()
 
@@ -54,8 +56,13 @@ class ImagenetR(ImageFolder):
                 labels = labels.to(device)
 
                 outputs = model(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+
+                if top5:
+                    correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                else:
+                    correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                total += total_batch
+                correct += correct_batch
 
         return correct / total
