@@ -17,12 +17,6 @@ class ImFolder(Dataset):
         self.labels = sorted(self.get_folders())
         self.transform = transform
 
-    # @property
-    # def idx_to_wnid(self):
-    #     if self.__idx_to_class is None:
-    #         self.__idx_to_class = {v: k for k, v in self.class_to_idx.items()}
-    #     return self.__idx_to_class
-
     def get_folders(self):
         classes = []
         for name in self.file:
