@@ -63,6 +63,18 @@ class ImagenetA(
         return image, label_1000
 
     @staticmethod
+    def pretty_print_acc(acc, args, cfg):
+        print("=" + "*=" * 12)
+        print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+        print(f"Config params: {getattr(cfg.data, args.dataset).params}")
+        if args.top5:
+            print(f"Top-5 Accuracy: {acc:.3f}")
+        else:
+            print(f"Top-1 Accuracy: {acc:.3f}")
+        print("=" + "*=" * 12)
+        print()
+
+    @staticmethod
     def eval_model(
         model,
         root=".",
