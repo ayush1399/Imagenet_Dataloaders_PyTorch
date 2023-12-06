@@ -1,9 +1,10 @@
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from apply_patch import ApplyPatch
 from PIL import Image
 
 import pickle
+import torch
 import gzip
 import os
 
@@ -74,3 +75,62 @@ class ImagenetPatch(Dataset):
         patch_label = self._patch_targets[patch_idx]
 
         return (image_clean, image_patch), (image_label, patch_label)
+
+    @staticmethod
+    def eval_model(
+        model,
+        root=".",
+        device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
+        batch_size=128,
+        patch="all",
+        top=1,
+    ):
+        model.eval()
+        model.to(device)
+
+        dataset = ImagenetPatch(root, patch=patch)
+
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=False, num_workers=4
+        )
+
+        correct_clean = 0
+        correct_adv = 0
+        n_success = 0
+        n_samples = 0
+
+        with torch.no_grad():
+            for X, Y in dataloader:
+                x_clean, x_adv = X
+                x_clean = x_clean.to(device)
+                x_adv = x_adv.to(device)
+
+                y_clean, y_adv = Y
+                y_clean = y_clean.to(device)
+                y_adv = y_adv.to(device)
+
+                pred_clean = model(x_clean)
+                clean_top_n = torch.topk(pred_clean, top, dim=1)[1]
+                correct_clean += (
+                    clean_top_n.eq(y_clean.view(-1, 1).expand_as(clean_top_n))
+                    .sum()
+                    .item()
+                )
+
+                pred_adv = model(x_adv)
+                adv_top_n = torch.topk(pred_adv, top, dim=1)[1]
+                correct_adv += (
+                    adv_top_n.eq(y_clean.view(-1, 1).expand_as(adv_top_n)).sum().item()
+                )
+
+                n_success += (
+                    adv_top_n.eq(y_adv.view(-1, 1).expand_as(adv_top_n)).sum().item()
+                )
+
+                n_samples += x_clean.shape[0]
+
+        clean_accuracy = 100 * (correct_clean / n_samples)
+        robust_accuracy = 100 * (correct_adv / n_samples)
+        success_rate = 100 * (n_success / n_samples)
+
+        return clean_accuracy, robust_accuracy, success_rate
