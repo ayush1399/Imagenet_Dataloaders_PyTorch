@@ -57,16 +57,20 @@ class ImagenetPatch(Dataset):
     def __getitem__(self, idx):
         if self.__patch == "all":
             index = idx % len(self._image_labels)
-            image_root = os.path.join("ILSVRC2012", "val", self._image_files[index])
+            image_root = os.path.join(
+                self._root, "ILSVRC2012", "val", self._image_files[index]
+            )
             image_label = self._image_labels[index]
             patch_idx = idx % self.__num_patches
 
         else:
-            image_root = os.path.join("ILSVRC2012", "val", self._image_files[idx])
+            image_root = os.path.join(
+                self._root, "ILSVRC2012", "val", self._image_files[idx]
+            )
             image_label = self._image_labels[idx]
             patch_idx = self.__patch
 
-        image = Image.open(os.path.join(image_root))
+        image = Image.open(image_root)
         if image.mode != "RGB":
             image = image.convert("RGB")
 
