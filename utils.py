@@ -1,3 +1,5 @@
+import torch
+
 class Accuracy:
     @staticmethod
     def _top1(outputs, labels):
