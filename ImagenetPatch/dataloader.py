@@ -41,6 +41,12 @@ class ImagenetPatch(Dataset):
                 )
             ]
 
+    def __len__(self):
+        if self.__patch == "all":
+            return len(self._image_labels) * len(self._patches)
+        else:
+            return len(self._image_files)
+
     def __get_image_ids(self):
         with open(os.path.join(self._root, "imagenet_test_image_ids.txt"), "r") as f:
             images = f.read().splitlines()
