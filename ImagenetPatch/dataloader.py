@@ -9,6 +9,11 @@ import gzip
 import os
 
 
+from .utils import thousandK_wnids
+
+wnid_to_class = {wnid: i for i, wnid in enumerate(sorted(thousandK_wnids))}
+
+
 class ImagenetPatch(Dataset):
     def __init__(self, root="./", patch="all"):
         self._root = root
@@ -52,7 +57,6 @@ class ImagenetPatch(Dataset):
             images = f.read().splitlines()
             self._image_files = [i.split("/")[1] for i in images]
             self._image_labels = [i.split("/")[0] for i in images]
-            self.__num_patches = len(self._image_files)
 
     def __load_patches(self):
         with gzip.open(os.path.join(self._root, "imagenet_patch.gz"), "rb") as f:
@@ -61,6 +65,7 @@ class ImagenetPatch(Dataset):
         self._patches = patches
         self._patch_targets = targets
         self._info = info
+        self._num_patches = len(self._patches)
 
     def __getitem__(self, idx):
         if self.__patch == "all":
@@ -69,7 +74,7 @@ class ImagenetPatch(Dataset):
                 self._root, "ILSVRC2012", "val", self._image_files[index]
             )
             image_label = self._image_labels[index]
-            patch_idx = idx % self.__num_patches
+            patch_idx = idx // len(self._image_labels)
 
         else:
             image_root = os.path.join(
@@ -86,7 +91,7 @@ class ImagenetPatch(Dataset):
         image_patch = self._patch_transforms[patch_idx](image)
         patch_label = self._patch_targets[patch_idx]
 
-        return (image_clean, image_patch), (image_label, patch_label)
+        return (image_clean, image_patch), (wnid_to_class[image_label], patch_label)
 
     @staticmethod
     def eval_model(
