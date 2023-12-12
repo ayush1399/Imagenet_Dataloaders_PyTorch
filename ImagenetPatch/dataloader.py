@@ -1,6 +1,6 @@
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from torch.utils.data import Dataset, DataLoader
-from apply_patch import ApplyPatch
+from .apply_patch import ApplyPatch
 from PIL import Image
 
 import pickle

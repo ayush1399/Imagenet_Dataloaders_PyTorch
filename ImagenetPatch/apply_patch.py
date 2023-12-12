@@ -1,5 +1,5 @@
 import torch
-from my_random_affine import MyRandomAffine
+from .my_random_affine import MyRandomAffine
 
 
 class ApplyPatch(torch.nn.Module):
