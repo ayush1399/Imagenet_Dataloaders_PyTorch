@@ -25,19 +25,21 @@ class ImagenetPatch(Dataset):
 
         self._patch_transforms = []
         for i in range(len(self._patches)):
-            self._patch_transforms[i] = Compose(
-                [
-                    self._preprocess,
-                    ApplyPatch(
-                        patch=self._patches[i],
-                        patch_size=self._info["patch_size"],
-                        translation_range=(0.2, 0.2),
-                        rotation_range=(-45, 45),
-                        scale_range=(0.7, 1),
-                    ),
-                    self._normalizer,
-                ]
-            )
+            self._patch_transforms += [
+                Compose(
+                    [
+                        self._preprocess,
+                        ApplyPatch(
+                            patch=self._patches[i],
+                            patch_size=self._info["patch_size"],
+                            translation_range=(0.2, 0.2),
+                            rotation_range=(-45, 45),
+                            scale_range=(0.7, 1),
+                        ),
+                        self._normalizer,
+                    ]
+                )
+            ]
 
     def __get_image_ids(self):
         with open(os.path.join(self._root, "imagenet_test_image_ids.txt"), "r") as f:
