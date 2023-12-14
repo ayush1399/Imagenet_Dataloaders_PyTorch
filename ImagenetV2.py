@@ -7,9 +7,6 @@ from .utils import Accuracy
 
 import torch
 
-num_workers = cpu_count()
-num_workers = max(1, num_workers) if num_workers is not None else 1
-
 
 class IV2:
     subdirs = ["all", "matched-frequency", "threshold", "top-images"]
@@ -58,6 +55,7 @@ class IV2:
         transforms=None,
         batch_size=128,
         top5=False,
+        num_workers=1,
     ):
         model.eval()
         correct = 0

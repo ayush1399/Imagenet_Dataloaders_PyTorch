@@ -5,9 +5,6 @@ from PIL import Image
 import torch
 import os
 
-num_workers = os.cpu_count()
-num_workers = max(1, num_workers) if num_workers is not None else 1
-
 
 class I1KEvalBase(Dataset):
     def __init__(self, dataset_dir, split, transform=None):
@@ -67,6 +64,7 @@ class I1KVal(
         transforms=None,
         batch_size=128,
         top5=False,
+        num_workers=1,
     ):
         model.eval()
         correct = 0

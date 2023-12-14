@@ -4,12 +4,8 @@ from .utils import Accuracy
 
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-from os import cpu_count
 
 import torch
-
-num_workers = cpu_count()
-num_workers = max(1, num_workers) if num_workers is not None else 1
 
 wnid_to_index = {wnid: index for index, wnid in enumerate(all_wnids)}
 imagenet_r_to_full_map = {
@@ -36,8 +32,10 @@ class ImagenetR(ImageFolder):
         transforms=None,
         batch_size=128,
         top5=False,
+        num_workers=1,
     ):
         model.eval()
+        model = model.to(device)
 
         dataset = ImagenetR(root, transform=transforms)
         loader = DataLoader(

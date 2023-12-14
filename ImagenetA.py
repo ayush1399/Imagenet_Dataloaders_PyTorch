@@ -7,9 +7,6 @@ from PIL import Image
 import torch
 import os
 
-num_workers = os.cpu_count()
-num_workers = max(1, num_workers) if num_workers is not None else 1
-
 mapping_200_to_1000 = {wnid: i for i, wnid in enumerate(sorted(thousandK_wnids))}
 
 
@@ -85,6 +82,7 @@ class ImagenetA(
         transforms=None,
         batch_size=128,
         top5=False,
+        num_workers=1,
     ):
         model.eval()
         model.to(device)
