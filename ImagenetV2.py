@@ -75,6 +75,7 @@ class IV2:
         num_workers=1,
     ):
         model.eval()
+        model = model.to(device)
         correct = 0
         total = 0
 
