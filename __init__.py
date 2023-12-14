@@ -4,6 +4,7 @@ from .ImagenetA import ImagenetA
 from .ImagenetC import IC as ImagenetC
 from .ImagenetR import ImagenetR
 from .ImagenetV2 import IV2 as ImagenetV2
+from .ImagenetPatch import ImagenetPatch
 
 __all__ = [
     "Imagenet1KTest",

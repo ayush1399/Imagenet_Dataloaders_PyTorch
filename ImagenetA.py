@@ -1,4 +1,4 @@
-from .utils import thousandK_to_ImagenetA200 as thousand_k_to_200
+from .utils import thousandK_wnids
 from .utils import Accuracy
 
 from torch.utils.data import Dataset, DataLoader
@@ -10,10 +10,7 @@ import os
 num_workers = os.cpu_count()
 num_workers = max(1, num_workers) if num_workers is not None else 1
 
-indices_in_1k = [k for k in thousand_k_to_200 if thousand_k_to_200[k] != -1]
-
-# Reverse mapping from 200-class label space to 1000-class label space
-mapping_200_to_1000 = {v: k for k, v in enumerate(indices_in_1k)}
+mapping_200_to_1000 = {wnid: i for i, wnid in enumerate(sorted(thousandK_wnids))}
 
 
 class ImagenetA(
@@ -25,6 +22,7 @@ class ImagenetA(
         self.images = []
         self.labels = []
         self.label_names = {}
+        self.label_map = {}
 
         self._load_data()
 
@@ -42,16 +40,21 @@ class ImagenetA(
                         self.label_names[label] = len(self.label_names)
                     self.labels.append(self.label_names[label])
 
+            for k, v in self.label_names.items():
+                self.label_map[v] = k
+
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
-        image, label_200 = Image.open(img_path).convert("RGB"), self.labels[idx]
+        image, label_200 = (
+            Image.open(img_path).convert("RGB"),
+            self.label_map[self.labels[idx]],
+        )
         label_1000 = mapping_200_to_1000.get(
             label_200, -1
         )  # Default to -1 if not found
-
         if label_1000 == -1:
             raise ValueError(
                 f"Label {label_200} in 200-class space has no corresponding label in 1000-class space"
@@ -104,7 +107,6 @@ class ImagenetA(
                     correct_batch, total_batch = Accuracy._top5(outputs, labels)
                 else:
                     correct_batch, total_batch = Accuracy._top1(outputs, labels)
-
                 total += total_batch
                 correct += correct_batch
 
