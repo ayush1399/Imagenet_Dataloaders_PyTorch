@@ -1,4 +1,3 @@
-from math import e
 from .utils import imagenetR_wnids as imagenet_r_wnids
 from .utils import thousandK_wnids as all_wnids
 from .utils import Accuracy

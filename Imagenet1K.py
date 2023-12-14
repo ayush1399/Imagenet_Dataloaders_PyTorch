@@ -1,9 +1,11 @@
 from torch.utils.data import DataLoader, Dataset
-from .utils import Accuracy
+from .utils import Accuracy, val_class_to_wnid, thousandK_wnids as all_wnids
 from PIL import Image
 
 import torch
 import os
+
+wnid_to_index = {wnid: index for index, wnid in enumerate(all_wnids)}
 
 
 class I1KEvalBase(Dataset):
@@ -17,6 +19,16 @@ class I1KEvalBase(Dataset):
                 if os.path.isfile(os.path.join(self.image_dir, f))
             ]
         )
+
+    @staticmethod
+    def pretty_print_acc(acc, args, cfg):
+        print("=" + "*=" * 12)
+        print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+        if args.top5:
+            print(f"Top-5 Acc: {acc * 100:.2f}%")
+        else:
+            print(f"Top-1 Acc: {acc * 100:.2f}%")
+        print("=" + "*=" * 12)
 
     def __len__(self):
         return len(self.image_files)
@@ -51,6 +63,8 @@ class I1KVal(
         ) as f:
             self.labels = f.readlines()
         self.labels = [int(label.strip()) for label in self.labels]
+        self.labels = [val_class_to_wnid[label] for label in self.labels]
+        self.labels = [wnid_to_index[label] for label in self.labels]
 
     def __getitem__(self, idx):
         image, _ = super().__getitem__(idx)
@@ -67,6 +81,7 @@ class I1KVal(
         num_workers=1,
     ):
         model.eval()
+        model = model.to(device)
         correct = 0
         total = 0
 
