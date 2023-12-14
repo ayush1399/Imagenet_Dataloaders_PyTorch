@@ -1,3 +1,4 @@
+from math import e
 from .utils import imagenetR_wnids as imagenet_r_wnids
 from .utils import thousandK_wnids as all_wnids
 from .utils import Accuracy
@@ -23,6 +24,16 @@ class ImagenetR(ImageFolder):
         label_full = self.class_to_idx[label_r]
 
         return image, label_full
+
+    @staticmethod
+    def pretty_print_acc(acc, args, cfg):
+        print("=" + "*=" * 12)
+        print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+        if args.top5:
+            print(f"Top-5 Acc: {acc * 100:.2f}%")
+        else:
+            print(f"Top-1 Acc: {acc * 100:.2f}%")
+        print("=" + "*=" * 12)
 
     @staticmethod
     def eval_model(
