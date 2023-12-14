@@ -47,6 +47,23 @@ class IV2:
             return getattr(self, self.subset)[index]
 
     @staticmethod
+    def pretty_print_acc(acc, args, cfg):
+        subset = getattr(cfg.data, args.dataset).params[0]
+        if subset == "all":
+            acc, subset_acc = acc
+            print("=" + "*=" * 12)
+            print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+            acc_typ = "Top-5" if args.top5 else "Top-1"
+            print(f"ALL: {acc_typ} Acc: {acc * 100:.2f}%")
+            for s in IV2.subdirs[1:]:
+                print(f"{s.upper()}: {acc_typ} Acc: {subset_acc[s] * 100:.2f}%")
+        else:
+            print("=" + "*=" * 12)
+            print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+            acc_typ = "Top-5" if args.top5 else "Top-1"
+            print(f"{subset.upper()}: {acc_typ} Acc: {acc * 100:.2f}%")
+
+    @staticmethod
     def eval_model(
         model,
         root=".",

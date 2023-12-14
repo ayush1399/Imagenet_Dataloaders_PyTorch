@@ -85,7 +85,7 @@ class ImagenetA(
         num_workers=1,
     ):
         model.eval()
-        model.to(device)
+        model = model.to(device)
 
         dataset = ImagenetA(root, transform=transforms)
         dataloader = DataLoader(

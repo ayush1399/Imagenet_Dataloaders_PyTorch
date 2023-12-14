@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 import torch
 
-wnid_to_index = {wnid: index for index, wnid in enumerate(all_wnids)}
+wnid_to_index = {wnid: index for index, wnid in enumerate(sorted(all_wnids))}
 imagenet_r_to_full_map = {
     i: wnid_to_index[wnid] for i, wnid in enumerate(imagenet_r_wnids)
 }
