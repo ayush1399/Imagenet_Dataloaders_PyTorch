@@ -68,9 +68,9 @@ class ImagenetA(
         print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
         print(f"Config params: {getattr(cfg.data, args.dataset).params}")
         if args.top5:
-            print(f"Top-5 Accuracy: {acc:.3f}")
+            print(f"Top-5 Accuracy: {acc*100:.2f}")
         else:
-            print(f"Top-1 Accuracy: {acc:.3f}")
+            print(f"Top-1 Accuracy: {acc*100:.2f}")
         print("=" + "*=" * 12)
         print()
 
