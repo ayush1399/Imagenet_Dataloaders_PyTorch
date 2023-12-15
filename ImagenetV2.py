@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader, Dataset
 from os.path import join
+from PIL import Image
 
 from .utils import Accuracy
 
@@ -103,11 +104,6 @@ class IV2:
         top5=False,
         num_workers=1,
     ):
-        print(f"Evaluating {subset}...")
-        print(f"Device: {device}")
-        print(f"Transforms: {transforms}")
-        print(f"root: {root}")
-
         model.eval()
         model = model.to(device)
         correct = 0
