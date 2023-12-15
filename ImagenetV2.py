@@ -1,11 +1,40 @@
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from os.path import join
-from os import cpu_count
 
 from .utils import Accuracy
 
 import torch
+import os
+
+
+class CustomImageFolder(Dataset):
+    def __init__(self, directory, transform=None):
+        self.directory = directory
+        self.transform = transform
+        self.images = []
+        self.labels = []
+
+        labels = os.listdir(directory)
+        labels = [int(l) for l in labels]
+
+        for label in labels:
+            label = str(label)
+            for image in os.listdir(os.path.join(directory, label)):
+                self.images.append(os.path.join(directory, label, image))
+                self.labels.append(label)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image_path = self.images[idx]
+        image = Image.open(image_path).convert("RGB")
+        label = self.labels[idx]
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, int(label)
 
 
 class IV2:
@@ -17,9 +46,9 @@ class IV2:
 
         if subset == "all":
             for s in IV2.subdirs[1:]:
-                setattr(self, s, ImageFolder(join(root, s), transform))
+                setattr(self, s, CustomImageFolder(join(root, s), transform))
         else:
-            setattr(self, subset, ImageFolder(join(root, subset), transform))
+            setattr(self, subset, CustomImageFolder(join(root, subset), transform))
 
     @property
     def subsets(self):
@@ -74,6 +103,11 @@ class IV2:
         top5=False,
         num_workers=1,
     ):
+        print(f"Evaluating {subset}...")
+        print(f"Device: {device}")
+        print(f"Transforms: {transforms}")
+        print(f"root: {root}")
+
         model.eval()
         model = model.to(device)
         correct = 0
@@ -85,7 +119,7 @@ class IV2:
             subset_acc = {s: 0.0 for s in IV2.subdirs[1:]}
 
             for s in IV2.subdirs[1:]:
-                dataset = ImageFolder(join(root, s), transforms)
+                dataset = CustomImageFolder(join(root, s), transforms)
                 dataloader = DataLoader(
                     dataset,
                     batch_size=batch_size,
@@ -94,6 +128,38 @@ class IV2:
                     pin_memory=True,
                 )
 
+                with torch.no_grad():
+                    for images, labels in dataloader:
+                        images, labels = images.to(device), labels.to(device)
+
+                        outputs = model(images)
+
+                        if top5:
+                            correct_batch, total_batch = Accuracy._top5(outputs, labels)
+                        else:
+                            correct_batch, total_batch = Accuracy._top1(outputs, labels)
+
+                        subset_correct[s] += correct_batch
+                        subset_total[s] += total_batch
+
+                    subset_acc[s] = subset_correct[s] / subset_total[s]
+
+            for key in subset_acc:
+                correct += subset_correct[key]
+                total += subset_total[key]
+
+            return correct / total, subset_acc
+
+        else:
+            dataset = CustomImageFolder(join(root, subset), transforms)
+            dataloader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=num_workers,  # type: ignore
+                pin_memory=True,
+            )
+            with torch.no_grad():
                 for images, labels in dataloader:
                     images, labels = images.to(device), labels.to(device)
 
@@ -104,37 +170,7 @@ class IV2:
                     else:
                         correct_batch, total_batch = Accuracy._top1(outputs, labels)
 
-                    subset_correct[s] += correct_batch
-                    subset_total[s] += total_batch
+                    correct += correct_batch
+                    total += total_batch
 
-                subset_acc[s] = subset_correct[s] / subset_total[s]
-
-            for key in subset_acc:
-                correct += subset_correct[key]
-                total += subset_total[key]
-
-            return correct / total, subset_acc
-
-        else:
-            dataset = ImageFolder(join(root, subset), transforms)
-            dataloader = DataLoader(
-                dataset,
-                batch_size=batch_size,
-                shuffle=False,
-                num_workers=num_workers,  # type: ignore
-                pin_memory=True,
-            )
-            for images, labels in dataloader:
-                images, labels = images.to(device), labels.to(device)
-
-                outputs = model(images)
-
-                if top5:
-                    correct_batch, total_batch = Accuracy._top5(outputs, labels)
-                else:
-                    correct_batch, total_batch = Accuracy._top1(outputs, labels)
-
-                correct += correct_batch
-                total += total_batch
-
-            return correct / total
+                return correct / total
