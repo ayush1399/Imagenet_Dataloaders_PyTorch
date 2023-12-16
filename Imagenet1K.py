@@ -1,5 +1,6 @@
-from torch.utils.data import DataLoader, Dataset
 from .utils import Accuracy, val_class_to_wnid, thousandK_wnids as all_wnids
+from torch.utils.data import DataLoader, Dataset
+from torchvision.datasets import ImageNet as I1KTrain
 from PIL import Image
 
 import torch

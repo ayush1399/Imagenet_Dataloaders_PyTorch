@@ -1,5 +1,4 @@
 from torch.utils.data import DataLoader, Dataset
-from os.path import join
 from PIL import Image
 
 from .utils import Accuracy
@@ -47,9 +46,11 @@ class IV2:
 
         if subset == "all":
             for s in IV2.subdirs[1:]:
-                setattr(self, s, CustomImageFolder(join(root, s), transform))
+                setattr(self, s, CustomImageFolder(os.path.join(root, s), transform))
         else:
-            setattr(self, subset, CustomImageFolder(join(root, subset), transform))
+            setattr(
+                self, subset, CustomImageFolder(os.path.join(root, subset), transform)
+            )
 
     @property
     def subsets(self):
@@ -115,7 +116,7 @@ class IV2:
             subset_acc = {s: 0.0 for s in IV2.subdirs[1:]}
 
             for s in IV2.subdirs[1:]:
-                dataset = CustomImageFolder(join(root, s), transforms)
+                dataset = CustomImageFolder(os.path.join(root, s), transforms)
                 dataloader = DataLoader(
                     dataset,
                     batch_size=batch_size,
@@ -147,7 +148,7 @@ class IV2:
             return correct / total, subset_acc
 
         else:
-            dataset = CustomImageFolder(join(root, subset), transforms)
+            dataset = CustomImageFolder(os.path.join(root, subset), transforms)
             dataloader = DataLoader(
                 dataset,
                 batch_size=batch_size,
