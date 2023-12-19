@@ -1,7 +1,8 @@
 from .utils import thousandK_wnids as all_wnids
 
+from PIL import Image
 from torchvision.datasets import ImageFolder
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 import os
 import h5py
@@ -32,7 +33,7 @@ class ImFolder(Dataset):
         label_idx = index // 50
         index = index % 50
         img = self.file["/" + self.labels[label_idx]][index]  # type: ignore
-
+        img = Image.fromarray(img)
         if self.transform is not None:
             img = self.transform(img)
         return img, wnid_to_class[self.labels[label_idx]]
@@ -59,7 +60,8 @@ class IC(
     ):
         super().__init__()
         assert subset in IC.subsets or subset == "all"
-        assert subsubset in IC.subsets[subset] or subsubset == "all"
+        if subset != "all":
+            assert subsubset in IC.subsets[subset] or subsubset == "all"
         for i in noise:
             assert 0 < i < 6
         if subset == "all":
@@ -140,6 +142,44 @@ class IC(
         raise IndexError("Index out of range")
 
     @staticmethod
+    def pretty_print_acc(accuracies, args, cfg):
+        print("=" + "*=" * 12)
+        print(f"MODEL: {args.model: <10} DATASET: {args.dataset}")
+        print(f"Batch Size: {args.batch_size: <10} Workers: {args.workers}")
+        print(f"Top1: {100*accuracies['top1']:.4f} Top5: {100*accuracies['top5']:.4f}")
+        for sk in accuracies:
+            if sk in ["top1", "top5", "total", "correct_top1", "correct_top5"]:
+                continue
+            print(
+                f"{sk.upper()} Top1 Acc: {100* accuracies[sk]['correct_top1'] / accuracies[sk]['total']:.4f}"
+            )
+            print(
+                f"{sk.upper()} Top5 Acc: {100* accuracies[sk]['correct_top5'] / accuracies[sk]['total']:.4f}"
+            )
+            for ssk in accuracies[sk]:
+                if ssk in ["total", "correct_top1", "correct_top5"]:
+                    continue
+                print(
+                    f"{sk.upper()} {ssk.upper()} Top1 Acc: {100* accuracies[sk][ssk]['correct_top1'] / accuracies[sk][ssk]['total']:.4f}"
+                )
+                print(
+                    f"{sk.upper()} {ssk.upper()} Top5 Acc: {100* accuracies[sk][ssk]['correct_top5'] / accuracies[sk][ssk]['total']:.4f}"
+                )
+
+                for n in accuracies[sk][ssk]:
+                    if n in ["total", "correct_top1", "correct_top5"]:
+                        continue
+                    print(
+                        f"{sk.upper()} {ssk.upper()} {n} Top1 Acc: {100* accuracies[sk][ssk][n]['correct_top1'] / accuracies[sk][ssk][n]['total']:.4f}"
+                    )
+                    print(
+                        f"{sk.upper()} {ssk.upper()} {n} Top5 Acc: {100* accuracies[sk][ssk][n]['correct_top5'] / accuracies[sk][ssk][n]['total']:.4f}"
+                    )
+
+            print()
+        print("=" + "*=" * 12)
+
+    @staticmethod
     def eval_model(
         model,
         root=".",
@@ -149,8 +189,82 @@ class IC(
         device=torch.device("cpu" if not torch.cuda.is_available() else "cuda"),
         transforms=None,
         batch_size=128,
+        **kwargs,
     ):
-        pass
+        model.eval()
+        model = model.to(device)
+        if subset == "all":
+            correct_top1, correct_top5, total = 0, 0, 0
+            subsets = IC.subsets.keys()
+            accuracies = dict()
+            for subset in subsets:
+                accuracies[subset] = dict()
+                accuracies[subset]["total"] = 0
+                accuracies[subset]["correct_top1"] = 0
+                accuracies[subset]["correct_top5"] = 0
+                for subsubset in IC.subsets[subset]:
+                    accuracies[subset][subsubset] = dict()
+                    accuracies[subset][subsubset]["total"] = 0
+                    accuracies[subset][subsubset]["correct_top1"] = 0
+                    accuracies[subset][subsubset]["correct_top5"] = 0
+                    for n in noise:
+                        print(f"Subset: {subset} Subsubset: {subsubset} Noise: {n}")
+                        accuracies[subset][subsubset][n] = dict()
+                        accuracies[subset][subsubset][n]["total"] = 0
+                        accuracies[subset][subsubset][n]["correct_top1"] = 0
+                        accuracies[subset][subsubset][n]["correct_top5"] = 0
+
+                        dataset = ImFolder(
+                            os.path.join(root, subset, subsubset, str(n)), transforms
+                        )
+                        dataloader = DataLoader(
+                            dataset, batch_size=batch_size, shuffle=False
+                        )
+                        for x, y in dataloader:
+                            x, y = x.to(device), y.to(device)
+                            with torch.no_grad():
+                                out = model(x)
+
+                                top1_correct = (
+                                    torch.eq(torch.topk(out, 1).indices, y.view(-1, 1))
+                                    .sum()
+                                    .item()
+                                )
+                                top5_correct = (
+                                    torch.eq(torch.topk(out, 5).indices, y.view(-1, 1))
+                                    .sum()
+                                    .item()
+                                )
+
+                                count_items = len(y)
+
+                                accuracies[subset][subsubset][n]["total"] += count_items
+                                accuracies[subset][subsubset][n][
+                                    "correct_top1"
+                                ] += top1_correct
+                                accuracies[subset][subsubset][n][
+                                    "correct_top5"
+                                ] += top5_correct
+
+                                accuracies[subset][subsubset]["total"] += count_items
+                                accuracies[subset][subsubset][
+                                    "correct_top1"
+                                ] += top1_correct
+                                accuracies[subset][subsubset][
+                                    "correct_top5"
+                                ] += top5_correct
+
+                                accuracies[subset]["total"] += count_items
+                                accuracies[subset]["correct_top1"] += top1_correct
+                                accuracies[subset]["correct_top5"] += top5_correct
+
+                                total += count_items
+                                correct_top1 += top1_correct
+                                correct_top5 += top5_correct
+
+            accuracies["top1"] = correct_top1 / total
+            accuracies["top5"] = correct_top5 / total
+            return accuracies
 
 
 # class_name = idx_to_class[label.item()]
